@@ -1,0 +1,27 @@
+Hi @visual-velocity wave
+
+You can use dio.download(onReceiveProgress: ...) to achieve this.
+
+In your http client layer have a request around the lines of:
+
+typedef DownloadPercentageChanged = void Function(double percentage);
+
+Future downloadFile(
+    DownloadPercentageChanged onDownloadPercentageChanged,
+  ) {
+    return _httpClient.download('download path', 'save path',
+        onReceiveProgress: (received, total) {
+      onDownloadPercentageChanged?.call((received / total) * 100);
+    });
+  }
+You'd expose this call through a repository and consume it in your bloc where you'd end up doing something like:
+
+if (event is DownloadFileRequested) {
+  await _repository.downloadFile(onDownloadPercentageChanged: (percentage) => add(FileDownloadPercentageChanged(percentage)));
+...
+}
+
+if (event is FileDownloadPercentageChanged) {
+  yield state.copyWith(downloadPercentageCompleted: event.percentage);
+  ...
+}
